@@ -1,9 +1,19 @@
+import { isSpoofedBot } from "@arcjet/inspect";
 import aj from "../lib/arcjet.js";
 import logger from "../lib/logger.js";
 
 export const arcjetProtection = async (req, res, next) => {
+  if (!aj) {
+    return next();
+  }
+
   try {
     const decision = await aj.protect(req);
+
+    if (decision.isErrored()) {
+      logger.warn(decision.reason, "Arcjet returned an error decision");
+      return next();
+    }
 
     if (decision.isDenied()) {
       if (decision.reason.isRateLimit()) {
@@ -17,7 +27,7 @@ export const arcjetProtection = async (req, res, next) => {
           message: "Access denied by security policy.",
         });
       }
-    } else if (decision.results.some(isSpoofedBot)) {
+    } else if (decision.results?.some(isSpoofedBot)) {
       return res.status(403).json({
         error: "Spoofed bot detected",
         message: "Malicious bot activity detected.",

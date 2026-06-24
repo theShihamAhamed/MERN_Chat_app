@@ -1,11 +1,7 @@
 import { create } from "zustand";
 import axiosInstance from "../lib/axios";
 import toast from "react-hot-toast";
-import { io } from "socket.io-client";
 import { initSocket } from "../utils/socket";
-
-const BASE_URL =
-  import.meta.env.MODE === "development" ? "http://localhost:5000" : "/";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -31,6 +27,7 @@ export const useAuthStore = create((set, get) => ({
     } catch (error) {
       if (error.response?.status === 401) {
         set({ authUser: null });
+        get().disconnectSocket();
 
         return null;
       }
@@ -72,9 +69,7 @@ export const useAuthStore = create((set, get) => ({
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data.user });
       toast.success("Logged in successfully");
-
-      const socket = initSocket(res.data.token);
-      set({ socket });
+      get().connectSocket();
 
       return res.data.user;
     } catch (error) {
@@ -123,28 +118,28 @@ export const useAuthStore = create((set, get) => ({
   },
 
   connectSocket: () => {
-    const { authUser } = get();
+    const { authUser, socket: existingSocket } = get();
 
-    console.log("authUser", authUser);
-    console.log("get().socket", get().socket);
+    if (!authUser || existingSocket?.connected) return;
 
-    if (!authUser || get().socket) return;
+    if (existingSocket) {
+      existingSocket.removeAllListeners();
+      existingSocket.disconnect();
+    }
 
-    const socket = io(BASE_URL, {
-      withCredentials: true,
-      transports: ["websocket"],
-    });
-
-    socket.connect();
+    const socket = initSocket();
 
     set({ socket });
-
-    socket.on("getOnlineUsers", (userIds) => {
-      set({ onlineUsers: userIds });
-    });
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket.disconnect();
+    const { socket } = get();
+
+    if (socket) {
+      socket.removeAllListeners();
+      socket.disconnect();
+    }
+
+    set({ socket: null, onlineUsers: [] });
   },
 }));

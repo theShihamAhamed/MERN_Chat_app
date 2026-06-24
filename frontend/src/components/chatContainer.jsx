@@ -7,44 +7,29 @@ import MessageInput from "./messageInput";
 import MessageBubble from "./messageBubble";
 
 function ChatContainer() {
-  const {
-    selectedUser,
-    getMessagesByUserId,
-    messages,
-    isMessagesLoading,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-  } = useChatStore();
+  const { selectedUser, getMessagesByUserId, messages, isMessagesLoading } =
+    useChatStore();
 
   const lastSelectedUserId = useRef(null);
   const containerRef = useRef(null);
 
   useEffect(() => {
     getMessagesByUserId(selectedUser._id);
-    subscribeToMessages();
-
-    // clean up
-    return () => unsubscribeFromMessages();
-  }, [
-    selectedUser,
-    getMessagesByUserId,
-    subscribeToMessages,
-    unsubscribeFromMessages,
-  ]);
+  }, [selectedUser, getMessagesByUserId]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     const el = containerRef.current;
 
-    // Switching chats → jump instantly
+    // Switching chats should jump instantly.
     if (lastSelectedUserId.current !== selectedUser._id) {
       el.scrollTop = el.scrollHeight;
       lastSelectedUserId.current = selectedUser._id;
       return;
     }
 
-    // New message → smooth scroll
+    // New messages should scroll smoothly.
     el.scrollTo({
       top: el.scrollHeight,
       behavior: "smooth",

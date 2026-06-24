@@ -2,45 +2,53 @@ import { Server } from "socket.io";
 import http from "http";
 import express from "express";
 import { socketAuthMiddleware } from "../middleware/socket.auth.middleware.js";
-import dotenv from "dotenv";
-
-dotenv.config();
+import { corsOptions } from "./config.js";
+import logger from "./logger.js";
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: [process.env.CLIENT_URL],
-    credentials: true,
-  },
+  cors: corsOptions,
 });
 
 // apply authentication middleware to all socket connections
 io.use(socketAuthMiddleware);
 
-// we will use this function to check if the user is online or not
+const userSocketMap = new Map(); // userId -> Set<socketId>
+
 export function getReceiverSocketId(userId) {
-  return userSocketMap[userId];
+  return getReceiverSocketIds(userId)[0];
 }
 
-// this is for storig online users
-const userSocketMap = {}; // {userId:socketId}
+export function getReceiverSocketIds(userId) {
+  return Array.from(userSocketMap.get(userId.toString()) || []);
+}
+
+const getOnlineUserIds = () => Array.from(userSocketMap.keys());
 
 io.on("connection", (socket) => {
-  console.log("A user connected", socket.user.fullName);
-
   const userId = socket.userId;
-  userSocketMap[userId] = socket.id;
+  const existingSockets = userSocketMap.get(userId) || new Set();
 
-  // io.emit() is used to send events to all connected clients
-  io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  existingSockets.add(socket.id);
+  userSocketMap.set(userId, existingSockets);
 
-  // with socket.on we listen for events from clients
+  logger.info({ userId }, "Socket connected");
+  io.emit("getOnlineUsers", getOnlineUserIds());
+
   socket.on("disconnect", () => {
-    console.log("A user disconnected", socket.user.fullName);
-    delete userSocketMap[userId];
-    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+    const sockets = userSocketMap.get(userId);
+
+    if (sockets) {
+      sockets.delete(socket.id);
+      if (sockets.size === 0) {
+        userSocketMap.delete(userId);
+      }
+    }
+
+    logger.info({ userId }, "Socket disconnected");
+    io.emit("getOnlineUsers", getOnlineUserIds());
   });
 });
 
