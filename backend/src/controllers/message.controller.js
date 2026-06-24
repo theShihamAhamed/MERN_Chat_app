@@ -1,8 +1,13 @@
 import cloudinary from "../lib/cloudinary.js";
 import logger from "../lib/logger.js";
-import { getReceiverSocketId, io } from "../lib/socket.js";
+import { getReceiverSocketIds, io } from "../lib/socket.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
+import {
+  isValidImageDataUrl,
+  isValidObjectId,
+  normalizeMessageText,
+} from "../utils/validators.js";
 
 export const getAllContacts = async (req, res) => {
   try {
@@ -24,6 +29,12 @@ export const getMessagesByUserId = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
     const { id: userToChatId } = req.params;
+
+    if (!isValidObjectId(userToChatId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid receiver id." });
+    }
 
     const receiverExists = await User.exists({ _id: userToChatId });
     if (!receiverExists) {
@@ -53,8 +64,35 @@ export const sendMessage = async (req, res) => {
     const { text, image } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
+    const normalizedText = normalizeMessageText(text);
 
-    if (!text && !image) {
+    if (!isValidObjectId(receiverId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid receiver id." });
+    }
+
+    if (normalizedText === null) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Message text must be a string." });
+    }
+
+    if (normalizedText.length > 2000) {
+      return res.status(400).json({
+        success: false,
+        message: "Message text must be 2000 characters or less.",
+      });
+    }
+
+    if (image && !isValidImageDataUrl(image)) {
+      return res.status(400).json({
+        success: false,
+        message: "Image must be a valid PNG, JPG, GIF, or WebP data URL.",
+      });
+    }
+
+    if (!normalizedText && !image) {
       return res
         .status(400)
         .json({ success: false, message: "Text or image is required." });
@@ -74,24 +112,25 @@ export const sendMessage = async (req, res) => {
 
     let imageUrl;
     if (image) {
-      // upload base64 image to cloudinary
-      const uploadResponse = await cloudinary.uploader.upload(image);
+      const uploadResponse = await cloudinary.uploader.upload(image, {
+        resource_type: "image",
+      });
       imageUrl = uploadResponse.secure_url;
     }
 
     const message = new Message({
       senderId,
       receiverId,
-      text,
+      text: normalizedText,
       image: imageUrl,
     });
 
     const newMessage = await message.save();
 
-    const receiverSocketId = getReceiverSocketId(receiverId);
+    const receiverSocketIds = getReceiverSocketIds(receiverId);
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", newMessage);
+    if (receiverSocketIds.length) {
+      io.to(receiverSocketIds).emit("newMessage", newMessage);
     }
 
     res.status(201).json({ success: true, newMessage });
@@ -105,11 +144,14 @@ export const getChatPartners = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
 
-    const partners = await Message.aggregate([
+    const chatPartners = await Message.aggregate([
       {
         $match: {
           $or: [{ senderId: loggedInUserId }, { receiverId: loggedInUserId }],
         },
+      },
+      {
+        $sort: { createdAt: -1 },
       },
       {
         $project: {
@@ -120,17 +162,24 @@ export const getChatPartners = async (req, res) => {
               "$senderId",
             ],
           },
-          createdAt: 1,
+          latestMessage: {
+            _id: "$_id",
+            text: "$text",
+            image: "$image",
+            senderId: "$senderId",
+            receiverId: "$receiverId",
+            createdAt: "$createdAt",
+          },
         },
       },
       {
         $group: {
           _id: "$partnerId",
-          lastMessageAt: { $max: "$createdAt" },
+          latestMessage: { $first: "$latestMessage" },
         },
       },
       {
-        $sort: { lastMessageAt: -1 },
+        $sort: { "latestMessage.createdAt": -1 },
       },
       {
         $lookup: {
@@ -143,13 +192,21 @@ export const getChatPartners = async (req, res) => {
       { $unwind: "$user" },
       {
         $project: {
-          password: 0,
-          "user.password": 0,
+          _id: "$user._id",
+          email: "$user.email",
+          fullName: "$user.fullName",
+          profilePic: "$user.profilePic",
+          createdAt: "$user.createdAt",
+          updatedAt: "$user.updatedAt",
+          latestMessage: 1,
+          latestMessageText: "$latestMessage.text",
+          latestMessageImage: "$latestMessage.image",
+          latestMessageAt: "$latestMessage.createdAt",
+          latestMessageSenderId: "$latestMessage.senderId",
+          unreadCount: { $literal: 0 },
         },
       },
     ]);
-
-    const chatPartners = partners.map((p) => p.user);
 
     res.status(200).json({ success: true, chatPartners });
   } catch (error) {

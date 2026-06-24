@@ -14,18 +14,7 @@ const NoChatHistoryPlaceholder = ({ name }) => {
           This is the beginning of your conversation. Send a message to start
           chatting!
         </p>
-        <div className="h-px w-32 bg-linear-to-r from-transparent via-cyan-500/30 to-transparent mx-auto"></div>
-      </div>
-      <div className="flex flex-wrap gap-2 justify-center">
-        <button className="px-4 py-2 text-xs font-medium text-cyan-400 bg-cyan-500/10 rounded-full hover:bg-cyan-500/20 transition-colors">
-          👋 Say Hello
-        </button>
-        <button className="px-4 py-2 text-xs font-medium text-cyan-400 bg-cyan-500/10 rounded-full hover:bg-cyan-500/20 transition-colors">
-          🤝 How are you?
-        </button>
-        <button className="px-4 py-2 text-xs font-medium text-cyan-400 bg-cyan-500/10 rounded-full hover:bg-cyan-500/20 transition-colors">
-          📅 Meet up soon?
-        </button>
+        <div className="h-px w-32 bg-linear-to-r from-transparent via-cyan-500/30 to-transparent mx-auto" />
       </div>
     </div>
   );

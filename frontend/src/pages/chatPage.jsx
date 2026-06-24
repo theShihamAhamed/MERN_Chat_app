@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useChatStore } from "../store/useChatStore";
+import { useAuthStore } from "../store/useAuthStore";
 import ActiveTabSwitch from "../components/activeTabSwitch";
 import ProfileHeader from "../components/profileHeader";
 import ChatsList from "../components/chatsList";
@@ -8,7 +9,20 @@ import ChatContainer from "../components/chatContainer";
 import NoConversationPlaceholder from "../components/noConversationPlaceholder";
 
 const ChatPage = () => {
-  const { activeTab, selectedUser } = useChatStore();
+  const {
+    activeTab,
+    selectedUser,
+    subscribeToMessages,
+    unsubscribeFromMessages,
+  } = useChatStore();
+  const { socket } = useAuthStore();
+
+  useEffect(() => {
+    if (!socket) return;
+
+    subscribeToMessages();
+    return () => unsubscribeFromMessages();
+  }, [socket, subscribeToMessages, unsubscribeFromMessages]);
 
   return (
     <>

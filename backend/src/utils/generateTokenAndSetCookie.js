@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { getAuthCookieSetOptions } from "./authCookie.js";
 
 export const generateTokenAndSetCookie = (res, userId) => {
   const JWT_SECRET = process.env.JWT_SECRET;
@@ -11,11 +12,7 @@ export const generateTokenAndSetCookie = (res, userId) => {
     expiresIn: "7d",
   });
 
-  res.cookie("token", token, {
-    httpOnly: true,
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  res.cookie("token", token, getAuthCookieSetOptions());
 
   return token;
 };

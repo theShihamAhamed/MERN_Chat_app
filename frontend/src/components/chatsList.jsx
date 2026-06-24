@@ -4,22 +4,59 @@ import UsersLoadingSkeleton from "./usersLoadingSkeleton";
 import NoChatsFound from "./noChatsFound";
 import { useAuthStore } from "../store/useAuthStore";
 
+const formatChatTimestamp = (value) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if (date.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+};
+
+const getMessagePreview = (chat, authUserId) => {
+  const latestMessage = chat.latestMessage || {};
+  const text = latestMessage.text || chat.latestMessageText;
+  const image = latestMessage.image || chat.latestMessageImage;
+  const senderId =
+    latestMessage.senderId?.toString?.() ||
+    chat.latestMessageSenderId?.toString?.();
+  const prefix = senderId === authUserId ? "You: " : "";
+
+  if (text) return `${prefix}${text}`;
+  if (image) return `${prefix}Photo`;
+  return "No messages yet";
+};
+
 const ChatsList = () => {
   const {
     getMyChatPartners,
     chats,
-    isUsersLoading,
+    isChatsLoading,
     setSelectedUser,
     selectedUser,
   } = useChatStore();
 
-  const { onlineUsers } = useAuthStore();
+  const { authUser, onlineUsers } = useAuthStore();
 
   useEffect(() => {
     getMyChatPartners();
   }, [getMyChatPartners]);
 
-  if (isUsersLoading) return <UsersLoadingSkeleton />;
+  if (isChatsLoading) return <UsersLoadingSkeleton />;
   if (chats.length === 0) return <NoChatsFound />;
 
   return (
@@ -49,20 +86,20 @@ const ChatsList = () => {
             <div className="flex items-center justify-between mb-1">
               <h4 className="text-white font-medium">{chat.fullName}</h4>
               <span className="text-xs text-slate-400">
-                {chat.timestamp || "2.30 PM"}
+                {formatChatTimestamp(chat.latestMessageAt)}
               </span>
             </div>
             <p className="text-sm text-slate-400 truncate">
-              {chat.lastMessage || "Hey! How are you doing?"}
+              {getMessagePreview(chat, authUser?._id)}
             </p>
           </div>
-          {
+          {chat.unreadCount > 0 && (
             <div className="shrink-0 w-5 h-5 bg-cyan-500 rounded-full flex items-center justify-center">
               <span className="text-xs text-white font-bold">
-                {chat.unread || "5"}
+                {chat.unreadCount}
               </span>
             </div>
-          }
+          )}
         </button>
       ))}
     </>

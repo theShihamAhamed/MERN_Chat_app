@@ -11,6 +11,8 @@ export const useChatStore = create((set, get) => ({
   activeTab: "chats",
 
   isUsersLoading: false,
+  isContactsLoading: false,
+  isChatsLoading: false,
   isMessagesLoading: false,
   isSendingMessage: false,
 
@@ -28,31 +30,44 @@ export const useChatStore = create((set, get) => ({
   setSelectedUser: (user) => set({ selectedUser: user }),
 
   getAllContacts: async () => {
-    set({ isUsersLoading: true, error: null });
+    set({ isContactsLoading: true, isUsersLoading: true, error: null });
     try {
       const res = await axiosInstance.get("/messages/contacts");
-      set({ allContacts: res.data });
-      return res.data;
+      const contacts = Array.isArray(res.data?.filteredUsers)
+        ? res.data.filteredUsers
+        : [];
+
+      set({ allContacts: contacts });
+      return { ...res.data, filteredUsers: contacts };
     } catch (error) {
       const message =
         error.response?.data?.message ||
         error.message ||
         "Failed to fetch contacts";
 
-      set({ error: message });
+      set({ error: message, allContacts: [] });
       toast.error(message);
       throw error;
     } finally {
-      set({ isUsersLoading: false });
+      set({ isContactsLoading: false, isUsersLoading: false });
     }
   },
 
-  getMyChatPartners: async () => {
-    set({ isUsersLoading: true, error: null });
+  getMyChatPartners: async (options = {}) => {
+    const { silent = false } = options;
+
+    if (!silent) {
+      set({ isChatsLoading: true, isUsersLoading: true, error: null });
+    }
+
     try {
       const res = await axiosInstance.get("/messages/chats");
-      set({ chats: res.data.chatPartners });
-      return res.data;
+      const chatPartners = Array.isArray(res.data?.chatPartners)
+        ? res.data.chatPartners
+        : [];
+
+      set({ chats: chatPartners });
+      return { ...res.data, chatPartners };
     } catch (error) {
       const message =
         error.response?.data?.message ||
@@ -60,10 +75,12 @@ export const useChatStore = create((set, get) => ({
         "Failed to fetch chats";
 
       set({ error: message });
-      toast.error(message);
+      if (!silent) toast.error(message);
       throw error;
     } finally {
-      set({ isUsersLoading: false });
+      if (!silent) {
+        set({ isChatsLoading: false, isUsersLoading: false });
+      }
     }
   },
 
@@ -71,8 +88,12 @@ export const useChatStore = create((set, get) => ({
     set({ isMessagesLoading: true, error: null });
     try {
       const res = await axiosInstance.get(`/messages/${userId}`);
-      set({ messages: res.data.messages });
-      return res.data;
+      const messages = Array.isArray(res.data?.messages)
+        ? res.data.messages
+        : [];
+
+      set({ messages });
+      return { ...res.data, messages };
     } catch (error) {
       const message =
         error.response?.data?.message ||
@@ -117,11 +138,15 @@ export const useChatStore = create((set, get) => ({
         messageData
       );
 
-      set((state) => ({
-        messages: state.messages.map((msg) =>
+      set((state) => {
+        const messages = state.messages.map((msg) =>
           msg._id === tempId ? res.data.newMessage : msg
-        ),
-      }));
+        );
+
+        return { messages, activeTab: "chats" };
+      });
+
+      await get().getMyChatPartners({ silent: true }).catch(() => {});
 
       return res.data.newMessage;
     } catch (error) {
@@ -146,33 +171,57 @@ export const useChatStore = create((set, get) => ({
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
+    const existingHandler = get()._messageHandler;
+    const existingSocket = get()._messageSocket;
+
+    if (existingSocket && existingHandler) {
+      existingSocket.off("newMessage", existingHandler);
+    }
+
     const handler = (newMessage) => {
-      console.log("newMessage", newMessage);
+      const { authUser } = useAuthStore.getState();
       const { selectedUser, isSoundEnabled } = get();
-      if (!selectedUser || newMessage.senderId !== selectedUser._id) return;
+      const isSelectedConversation =
+        selectedUser &&
+        authUser &&
+        ((newMessage.senderId === selectedUser._id &&
+          newMessage.receiverId === authUser._id) ||
+          (newMessage.senderId === authUser._id &&
+            newMessage.receiverId === selectedUser._id));
 
-      set((state) => ({
-        messages: [...state.messages, newMessage],
-      }));
+      if (isSelectedConversation) {
+        set((state) => {
+          const alreadyExists = state.messages.some(
+            (msg) => msg._id === newMessage._id
+          );
 
-      if (isSoundEnabled) {
-        const audio = new Audio("/sounds/notification.mp3");
-        audio.play().catch(() => {});
+          return alreadyExists
+            ? {}
+            : { messages: [...state.messages, newMessage] };
+        });
+
+        if (isSoundEnabled) {
+          const audio = new Audio("/sounds/notification.mp3");
+          audio.play().catch(() => {});
+        }
       }
+
+      get().getMyChatPartners({ silent: true }).catch(() => {});
     };
 
     socket.on("newMessage", handler);
 
-    // store handler reference
-    set({ _messageHandler: handler });
+    set({ _messageHandler: handler, _messageSocket: socket });
   },
 
   unsubscribeFromMessages: () => {
-    const socket = useAuthStore.getState().socket;
     const handler = get()._messageHandler;
+    const socket = get()._messageSocket || useAuthStore.getState().socket;
 
     if (socket && handler) {
       socket.off("newMessage", handler);
     }
+
+    set({ _messageHandler: null, _messageSocket: null });
   },
 }));

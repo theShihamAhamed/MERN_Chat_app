@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Mail, Lock, Eye, EyeClosed, UserPlus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { loginSchema } from "../const/schemas";
-import { Link } from "react-router-dom";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +24,6 @@ export default function LoginPage() {
     try {
       await login(data);
     } catch (error) {
-      console.log(error);
       const { field, message } = error.response?.data || {};
 
       if (field) {
@@ -47,7 +46,6 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Email
@@ -68,7 +66,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Password
@@ -100,7 +97,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* Form-level error */}
             {errors.root && (
               <p className="text-sm text-red-400 text-left">
                 {errors.root.message}
@@ -110,13 +106,13 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full py-4 bg-linear-to-r from-cyan-500 to-teal-500 rounded-xl font-semibold hover:from-cyan-600 hover:to-teal-600 transition-all"
+              className="w-full py-4 bg-linear-to-r from-cyan-500 to-teal-500 rounded-xl font-semibold hover:from-cyan-600 hover:to-teal-600 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoggingIn ? "Logging in..." : "Login"}
             </button>
 
             <p className="text-center text-slate-400">
-              Don’t have an account?{" "}
+              Don't have an account?{" "}
               <Link
                 to="/signup"
                 className="text-cyan-400 hover:text-cyan-300 font-medium"
@@ -128,7 +124,7 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="hidden lg:flex flex-1 bg-linear-to-br from-cyan-900/20 to-teal-900/20 items-center justify-center p-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iIzA2YjZkNCIgc3Ryb2tlLW9wYWNpdHk9Ii4xIi8+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNnoiIHN0cm9rZT0iIzA2YjZkNCIgc3Ryb2tlLW9wYWNpdHk9Ii4xIi8+PC9nPjwvc3ZnPg==')] opacity-30" />
 
         <div className="relative z-10 text-center max-w-lg">
           <div className="mb-8 flex items-center justify-center">

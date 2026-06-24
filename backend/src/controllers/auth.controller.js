@@ -4,6 +4,9 @@ import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js
 import logger from "../lib/logger.js";
 import { sendWelcomeEmail } from "../utils/email/emailHandler.js";
 import cloudinary from "../lib/cloudinary.js";
+import { CLIENT_URLS } from "../lib/config.js";
+import { getAuthCookieOptions } from "../utils/authCookie.js";
+import { isValidImageDataUrl } from "../utils/validators.js";
 
 export const signup = async (req, res) => {
   const { email, password, fullName } = req.body;
@@ -47,13 +50,9 @@ export const signup = async (req, res) => {
 
     generateTokenAndSetCookie(res, user._id);
 
-    const CLIENT_URL = process.env.CLIENT_URL;
-
-    if (!CLIENT_URL) {
-      throw new Error("CLIENT_URL is not defined");
-    }
-
-    sendWelcomeEmail(savedUser.email, savedUser.fullName, CLIENT_URL);
+    sendWelcomeEmail(savedUser.email, savedUser.fullName, CLIENT_URLS[0]).catch(
+      (error) => logger.warn(error, "Welcome email failed")
+    );
 
     res.status(201).json({
       success: true,
@@ -108,7 +107,7 @@ export const login = async (req, res) => {
 };
 
 export const logout = (_, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", getAuthCookieOptions());
   res.status(200).json({ success: true, message: "Logged out successfully" });
 };
 
@@ -118,9 +117,18 @@ export const updateProfile = async (req, res) => {
     if (!profilePic)
       return res.status(400).json({ message: "Profile pic is required" });
 
+    if (!isValidImageDataUrl(profilePic)) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile pic must be a valid PNG, JPG, GIF, or WebP data URL.",
+      });
+    }
+
     const userId = req.user._id;
 
-    const uploadResponse = await cloudinary.uploader.upload(profilePic);
+    const uploadResponse = await cloudinary.uploader.upload(profilePic, {
+      resource_type: "image",
+    });
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
