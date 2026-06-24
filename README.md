@@ -26,7 +26,7 @@ The app includes JWT HTTP-only cookie authentication, Socket.IO real-time messag
 - Profile image upload.
 - Resend welcome email on signup.
 - Arcjet security middleware for auth and message routes.
-- Production static serving of the frontend from Express.
+- Optional production static serving of the frontend from Express.
 
 ## Tech Stack
 
@@ -98,7 +98,7 @@ The backend exposes:
 
 Socket.IO runs on the same HTTP server as Express. The socket connection authenticates by reading the JWT cookie from the socket handshake. After a user connects, the server stores the user ID with all active socket IDs so multiple tabs/devices remain online correctly.
 
-In production, Express can serve `frontend/dist` so the app can be deployed as one full-stack service. The frontend can also be deployed separately by setting Vite backend URL env vars.
+In production, Express runs safely as an API-only service by default. It can also serve `frontend/dist` for a single full-stack deployment when `SERVE_FRONTEND=true` and `frontend/dist/index.html` exists. The frontend can be deployed separately by setting Vite backend URL env vars.
 
 ## Environment Variables
 
@@ -113,6 +113,7 @@ NODE_ENV=development
 PORT=5000
 LOG_LEVEL=info
 TRUST_PROXY=false
+SERVE_FRONTEND=false
 
 MONGODB_URI=mongodb://127.0.0.1:27017/Toki
 JWT_SECRET=replace-with-a-long-random-secret
@@ -141,6 +142,7 @@ Important backend variables:
 - `MONGODB_URI`: local MongoDB or MongoDB Atlas connection string.
 - `JWT_SECRET`: long random secret used to sign auth cookies.
 - `CLIENT_URL`: allowed frontend origin for CORS and Socket.IO. Use comma-separated URLs if needed.
+- `SERVE_FRONTEND`: keep `false` for backend-only deployments; set `true` only when `frontend/dist/index.html` exists in the backend service.
 - `COOKIE_SECURE`: `false` for local HTTP, `true` for HTTPS production.
 - `COOKIE_SAME_SITE`: `lax` for same-site usage, `none` for cross-domain frontend/backend cookies.
 - `TRUST_PROXY`: set to `1` or `true` on most hosted Node platforms behind a proxy.
@@ -375,11 +377,16 @@ Build the frontend:
 npm run build --prefix frontend
 ```
 
-The backend serves `frontend/dist` automatically when:
+The backend runs in API-only mode by default, even when `NODE_ENV=production`.
+
+To serve the frontend from the backend in a single-service deployment, build the frontend and set:
 
 ```env
 NODE_ENV=production
+SERVE_FRONTEND=true
 ```
+
+If `SERVE_FRONTEND=true` but `frontend/dist/index.html` is missing, the backend logs a warning and stays in API-only mode instead of throwing an `ENOENT` error.
 
 Root build installs backend/frontend dependencies and builds the frontend:
 
@@ -418,6 +425,7 @@ NODE_ENV=production
 PORT=<provided-by-platform>
 TRUST_PROXY=1
 CLIENT_URL=https://your-app.example.com
+SERVE_FRONTEND=true
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=lax
 VITE_API_BASE_URL=
@@ -428,7 +436,14 @@ In this setup, Express serves the frontend and API from the same domain.
 
 ### Option B: Vercel Frontend and Separate Backend
 
-Use this when the React frontend is deployed separately from the Express backend.
+Use this when the React frontend is deployed separately from the Express backend, such as Vercel frontend plus Render backend.
+
+Render backend service example:
+
+- Root Directory: `backend`
+- Build Command: `npm install`
+- Start Command: `npm start`
+- WebSocket support: required
 
 Backend env:
 
@@ -436,6 +451,7 @@ Backend env:
 NODE_ENV=production
 TRUST_PROXY=1
 CLIENT_URL=https://your-frontend.vercel.app
+SERVE_FRONTEND=false
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=none
 ```
@@ -451,6 +467,7 @@ Requirements:
 
 - Backend must use HTTPS.
 - Backend CORS must allow the exact frontend URL.
+- Backend should keep `SERVE_FRONTEND=false` because `frontend/dist` is not present in a backend-only service.
 - Frontend requests must include credentials.
 - Backend host must support WebSockets.
 - Cookies may be affected by browser third-party cookie restrictions if frontend/backend are on unrelated domains.

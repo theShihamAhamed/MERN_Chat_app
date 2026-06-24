@@ -65,6 +65,7 @@ export const COOKIE_SAME_SITE =
 export const TRUST_PROXY =
   parseTrustProxy(process.env.TRUST_PROXY) ?? (isProduction ? 1 : false);
 export const JSON_BODY_LIMIT = process.env.JSON_BODY_LIMIT || "10mb";
+export const SERVE_FRONTEND = parseBoolean(process.env.SERVE_FRONTEND) ?? false;
 
 const configuredMaxImageUploadBytes = Number(process.env.MAX_IMAGE_UPLOAD_BYTES);
 
