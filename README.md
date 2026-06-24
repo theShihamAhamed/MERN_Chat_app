@@ -1,554 +1,511 @@
-# Toki MERN Real-Time Chat App
+<div align="center">
 
-Toki is a MERN real-time chat application built as a learning project for authentication, WebSockets, email delivery, image uploads, and production deployment basics.
+# 💬 Toki
 
-The app includes JWT HTTP-only cookie authentication, Socket.IO real-time messaging, MongoDB message storage, Cloudinary image uploads, Resend welcome emails, and Arcjet request protection.
+### Real-Time Chat App
 
-## Learning Goals
+A full-stack MERN chat application with real-time messaging, JWT authentication, image sharing, and production-grade security.
 
-- Understand MERN stack authentication with JWT cookies.
-- Build real-time messaging with Socket.IO.
-- Manage React chat state with Zustand.
-- Send transactional welcome email with Resend.
-- Upload profile and message images through Cloudinary.
-- Add request protection with Arcjet.
-- Prepare a full-stack app for deployment.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-toki--frontend--tawny.vercel.app-cyan?style=for-the-badge&logo=vercel)](https://toki-frontend-tawny.vercel.app/)
+[![Node.js](https://img.shields.io/badge/Node.js-22+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=for-the-badge&logo=socket.io)](https://socket.io/)
+[![License](https://img.shields.io/badge/License-ISC-blue?style=for-the-badge)](LICENSE)
 
-## Features
+</div>
 
-- Sign up, log in, log out, and restore session from cookie.
-- HTTP-only JWT auth cookie.
-- Real-time online users and message delivery.
-- Multi-tab aware online-user tracking.
-- Contacts list for starting first conversations.
-- Chats list with latest-message previews.
-- Text messages and image messages.
-- Profile image upload.
-- Resend welcome email on signup.
-- Arcjet security middleware for auth and message routes.
-- Optional production static serving of the frontend from Express.
+---
 
-## Tech Stack
+## ✨ Features
 
-Backend:
+- **Real-time messaging** — instant message delivery via Socket.IO with no polling
+- **Online presence** — see who's online across multiple tabs and devices
+- **JWT authentication** — secure HTTP-only cookie auth with session persistence
+- **Image sharing** — send images in messages; uploaded and served via Cloudinary
+- **Profile pictures** — upload and update your avatar, stored on Cloudinary
+- **Welcome email** — automated onboarding email on signup via Resend
+- **Optimistic UI** — messages appear instantly before the server confirms
+- **Sound effects** — optional keyboard typing sounds, mouse clicks, and notifications
+- **Chats list** — smart list showing recent conversations with latest-message previews
+- **Contacts tab** — browse all users to start new conversations
+- **Arcjet security** — rate limiting, bot detection, and shield protection on all API routes
+- **Smooth animations** — Framer Motion transitions throughout the UI
 
-- Node.js
-- Express
-- MongoDB and Mongoose
-- Socket.IO
-- JWT
-- bcryptjs
-- Cookie parser
-- Cloudinary
-- Resend
-- Arcjet
-- Pino logging
+---
 
-Frontend:
-
-- React
-- Vite
-- Zustand
-- Axios
-- Socket.IO client
-- React Router
-- Tailwind CSS
-- Lucide icons
-
-## Folder Structure
-
-```text
-chatApp/
-  backend/
-    src/
-      controllers/
-      lib/
-      middleware/
-      models/
-      routes/
-      utils/
-      server.js
-    .env.example
-    package.json
-  frontend/
-    src/
-      components/
-      const/
-      hooks/
-      layouts/
-      lib/
-      pages/
-      store/
-      utils/
-    .env.example
-    package.json
-  package.json
-  README.md
-```
-
-## Architecture Overview
-
-The frontend talks to the backend REST API with Axios and sends cookies by using `withCredentials`.
-
-The backend exposes:
-
-- `/api/auth/*` for auth/profile routes.
-- `/api/messages/*` for contacts, chats, message history, and sending messages.
-- `/api/health` for deployment health checks.
-
-Socket.IO runs on the same HTTP server as Express. The socket connection authenticates by reading the JWT cookie from the socket handshake. After a user connects, the server stores the user ID with all active socket IDs so multiple tabs/devices remain online correctly.
-
-In production, Express runs safely as an API-only service by default. It can also serve `frontend/dist` for a single full-stack deployment when `SERVE_FRONTEND=true` and `frontend/dist/index.html` exists. The frontend can be deployed separately by setting Vite backend URL env vars.
-
-## Environment Variables
-
-Never commit a real `.env` file. Use the example files as templates.
+## 🛠 Tech Stack
 
 ### Backend
-
-Create `backend/.env` from `backend/.env.example`.
-
-```env
-NODE_ENV=development
-PORT=5000
-LOG_LEVEL=info
-TRUST_PROXY=false
-SERVE_FRONTEND=false
-
-MONGODB_URI=mongodb://127.0.0.1:27017/Toki
-JWT_SECRET=replace-with-a-long-random-secret
-
-CLIENT_URL=http://localhost:5173
-COOKIE_SECURE=false
-COOKIE_SAME_SITE=lax
-
-RESEND_API_KEY=re_xxxxx
-EMAIL_FROM=onboarding@example.com
-EMAIL_FROM_NAME=Toki
-
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-
-ARCJET_KEY=ajkey_xxxxx
-ARCJET_MODE=DRY_RUN
-
-MAX_IMAGE_UPLOAD_BYTES=5242880
-JSON_BODY_LIMIT=10mb
-```
-
-Important backend variables:
-
-- `MONGODB_URI`: local MongoDB or MongoDB Atlas connection string.
-- `JWT_SECRET`: long random secret used to sign auth cookies.
-- `CLIENT_URL`: allowed frontend origin for CORS and Socket.IO. Use comma-separated URLs if needed.
-- `SERVE_FRONTEND`: keep `false` for backend-only deployments; set `true` only when `frontend/dist/index.html` exists in the backend service.
-- `COOKIE_SECURE`: `false` for local HTTP, `true` for HTTPS production.
-- `COOKIE_SAME_SITE`: `lax` for same-site usage, `none` for cross-domain frontend/backend cookies.
-- `TRUST_PROXY`: set to `1` or `true` on most hosted Node platforms behind a proxy.
-- `RESEND_API_KEY`, `EMAIL_FROM`, `EMAIL_FROM_NAME`: welcome email settings.
-- `CLOUDINARY_*`: Cloudinary upload credentials.
-- `ARCJET_KEY`, `ARCJET_MODE`: Arcjet protection settings.
-- `MAX_IMAGE_UPLOAD_BYTES`: max decoded image payload size.
-- `JSON_BODY_LIMIT`: Express JSON body limit. Keep this high enough for base64 image overhead.
+| Package | Purpose |
+|---|---|
+| **Express** | REST API framework |
+| **MongoDB + Mongoose** | Database and ODM |
+| **Socket.IO** | Real-time bidirectional messaging |
+| **JWT + bcryptjs** | Authentication and password hashing |
+| **Cloudinary** | Image upload and CDN hosting |
+| **Resend** | Transactional welcome email |
+| **Arcjet** | Rate limiting, bot detection, shield |
+| **Pino** | Structured JSON logging |
+| **cookie-parser** | HTTP-only cookie handling |
 
 ### Frontend
+| Package | Purpose |
+|---|---|
+| **React 19 + Vite** | UI framework and build tool |
+| **Zustand** | Global state management |
+| **Socket.IO Client** | Real-time connection |
+| **Axios** | HTTP client with credentials |
+| **React Router v7** | Client-side routing |
+| **Tailwind CSS v4** | Utility-first styling |
+| **Framer Motion** | Animations and transitions |
+| **React Hook Form** | Form validation |
+| **Lucide React** | Icon library |
+| **React Hot Toast** | Toast notifications |
 
-Create `frontend/.env` from `frontend/.env.example` only when you need to override defaults.
+---
 
-```env
-VITE_API_BASE_URL=http://localhost:5000/api
-VITE_BACKEND_URL=http://localhost:5000
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Browser (React SPA)                    │
+│                                                          │
+│  Zustand Store ←→ Axios (REST) ←→ Socket.IO Client      │
+│  useAuthStore       /api/*          ws://backend         │
+│  useChatStore                                            │
+└────────────────────┬────────────────────────────────────┘
+                     │  HTTPS + WSS
+┌────────────────────▼────────────────────────────────────┐
+│               Express + Socket.IO Server                 │
+│                                                          │
+│  Arcjet Middleware → Route Handlers → Controllers        │
+│                                                          │
+│  /api/auth/*       /api/messages/*    /api/health        │
+│  signup, login,    send, contacts,                       │
+│  logout, profile   chats, history                        │
+│                                                          │
+│  Socket.IO (JWT cookie auth middleware)                  │
+│  userId → Set<socketId> (multi-tab aware)                │
+└──────────┬─────────────────────┬───────────────────────┘
+           │                     │
+    ┌──────▼──────┐    ┌─────────▼──────────┐
+    │  MongoDB    │    │  External Services  │
+    │  Atlas      │    │  Cloudinary (imgs)  │
+    │  users      │    │  Resend (email)     │
+    │  messages   │    │  Arcjet (security)  │
+    └─────────────┘    └────────────────────┘
 ```
 
-For a same-domain production build served by Express, these can be omitted because the frontend defaults to `/api` and `/`.
+### Real-Time Message Flow
 
-For split frontend/backend deployment:
+1. User logs in → backend sets `token` as an HTTP-only cookie
+2. Frontend opens a Socket.IO connection with `withCredentials: true`
+3. Socket middleware reads and verifies the JWT cookie
+4. Server maps `userId → Set<socketId>` (supports multi-tab)
+5. On `sendMessage`, backend saves to MongoDB, then emits `newMessage` to all receiver sockets
+6. Frontend shows the message optimistically, then replaces it with the confirmed copy
+7. On disconnect, only that socket ID is removed — other tabs stay online
 
-```env
-VITE_API_BASE_URL=https://your-backend.example.com/api
-VITE_BACKEND_URL=https://your-backend.example.com
+---
+
+## 📁 Project Structure
+
+```
+toki/
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js      # signup, login, logout, updateProfile
+│   │   │   └── message.controller.js   # sendMessage, getMessages, getChatPartners
+│   │   ├── lib/
+│   │   │   ├── arcjet.js               # rate limit + bot detection config
+│   │   │   ├── cloudinary.js           # Cloudinary client init
+│   │   │   ├── config.js               # env var parsing and exports
+│   │   │   ├── db.js                   # MongoDB connection
+│   │   │   ├── logger.js               # Pino logger
+│   │   │   ├── resend.js               # Resend client init
+│   │   │   └── socket.js               # Socket.IO server + online user map
+│   │   ├── middleware/
+│   │   │   ├── arcjet.middleware.js    # Arcjet route protection
+│   │   │   ├── auth.middleware.js      # JWT cookie verification
+│   │   │   └── socket.auth.middleware.js # Socket.IO JWT auth
+│   │   ├── models/
+│   │   │   ├── user.model.js
+│   │   │   └── message.model.js
+│   │   ├── routes/
+│   │   │   ├── auth.route.js
+│   │   │   └── message.route.js
+│   │   ├── utils/
+│   │   │   ├── authCookie.js
+│   │   │   ├── generateTokenAndSetCookie.js
+│   │   │   ├── validators.js
+│   │   │   └── email/
+│   │   │       ├── emailHandler.js
+│   │   │       └── createWelcomeEmailTemplate.js
+│   │   └── server.js
+│   ├── .env.example
+│   └── package.json
+│
+├── frontend/
+│   ├── public/
+│   │   ├── avatar.png
+│   │   └── sounds/                     # keystroke, notification, click audio
+│   ├── src/
+│   │   ├── components/                 # chatContainer, chatHeader, messageInput…
+│   │   ├── hooks/
+│   │   │   └── useKeyboardSound.js     # random keystroke sound player
+│   │   ├── layouts/
+│   │   │   └── rootLayout.jsx
+│   │   ├── lib/
+│   │   │   ├── axios.js                # Axios instance with withCredentials
+│   │   │   └── config.js
+│   │   ├── pages/
+│   │   │   ├── chatPage.jsx
+│   │   │   ├── loginPage.jsx
+│   │   │   └── signUpPage.jsx
+│   │   ├── store/
+│   │   │   ├── useAuthStore.js         # auth state + socket lifecycle
+│   │   │   └── useChatStore.js         # messages, chats, contacts, sounds
+│   │   ├── utils/
+│   │   │   └── socket.js               # Socket.IO client factory
+│   │   └── App.jsx
+│   ├── .env.example
+│   ├── vercel.json                     # SPA rewrite rule for Vercel
+│   └── package.json
+│
+└── README.md
 ```
 
-## Local Setup
+---
 
-Install dependencies:
+## 🚀 Getting Started (Local)
+
+### Prerequisites
+
+- Node.js 18+
+- MongoDB running locally **or** a [MongoDB Atlas](https://www.mongodb.com/atlas) connection string
+- [Cloudinary](https://cloudinary.com/) account (free tier works)
+- [Resend](https://resend.com/) account for emails (optional — signup still works without it)
+- [Arcjet](https://arcjet.com/) key (optional — middleware safely no-ops without it)
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/your-username/toki.git
+cd toki
+```
+
+### 2. Install dependencies
 
 ```bash
 npm install --prefix backend
 npm install --prefix frontend
 ```
 
-Create env files:
+### 3. Configure environment variables
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-Edit the new `.env` files with your local values.
+Edit `backend/.env` with your values (see [Environment Variables](#-environment-variables) below).
 
-Run backend:
+The frontend `.env` defaults to `http://localhost:5000` — no changes needed for local dev.
 
+### 4. Start the servers
+
+**Backend** (runs on port 5000):
 ```bash
 npm run dev --prefix backend
 ```
 
-Run frontend:
-
+**Frontend** (runs on port 5173):
 ```bash
 npm run dev --prefix frontend
 ```
 
-Open:
+### 5. Open the app
 
-```text
+```
 http://localhost:5173
 ```
 
-## Local MongoDB
+---
 
-Use this backend value if MongoDB is running locally:
+## 🔐 Environment Variables
+
+### Backend — `backend/.env`
 
 ```env
+# Server
+NODE_ENV=development
+PORT=5000
+LOG_LEVEL=info
+TRUST_PROXY=false
+
+# Database
 MONGODB_URI=mongodb://127.0.0.1:27017/Toki
-```
 
-Then start the backend normally.
+# Auth
+JWT_SECRET=replace-with-a-long-random-secret
 
-## MongoDB Atlas
-
-1. Create a MongoDB Atlas cluster.
-2. Create a database user.
-3. Allow your deployment IP address or local IP address in Network Access.
-4. Copy the connection string.
-5. Set:
-
-```env
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/Toki
-```
-
-Do not commit the real connection string.
-
-## Real-Time Socket.IO Flow
-
-1. User logs in or signs up.
-2. Backend sets a JWT HTTP-only cookie.
-3. Frontend creates a Socket.IO connection with `withCredentials: true`.
-4. Socket middleware reads and verifies the JWT cookie.
-5. Server maps `userId -> Set<socketId>`.
-6. When a message is saved, the backend emits `newMessage` to every socket for the receiver.
-7. Frontend updates the active conversation and refreshes chat previews.
-8. On disconnect, the server removes only that socket ID, so other tabs stay online.
-
-Deployment note: your hosting platform must support WebSockets. If it does not, real-time chat will not work reliably.
-
-## Auth and Cookies
-
-The app uses a JWT stored in a cookie named `token`.
-
-Local development:
-
-```env
+# CORS / Cookie
+CLIENT_URL=http://localhost:5173
 COOKIE_SECURE=false
 COOKIE_SAME_SITE=lax
-CLIENT_URL=http://localhost:5173
-```
+SERVE_FRONTEND=false
 
-Same-domain production, such as one Express service serving both frontend and API:
+# Resend (welcome email)
+RESEND_API_KEY=re_xxxxx
+EMAIL_FROM=onboarding@yourdomain.com
+EMAIL_FROM_NAME=Toki
 
-```env
-NODE_ENV=production
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=lax
-CLIENT_URL=https://your-app.example.com
-TRUST_PROXY=1
-```
+# Cloudinary (image uploads)
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
 
-Split frontend/backend production, such as Vercel frontend plus Render backend:
+# Arcjet (security)
+ARCJET_KEY=ajkey_xxxxx
+ARCJET_MODE=DRY_RUN
 
-```env
-NODE_ENV=production
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=none
-CLIENT_URL=https://your-frontend.example.com
-TRUST_PROXY=1
-```
-
-For cross-domain cookies, both the frontend and backend must be HTTPS, Axios/Socket.IO must send credentials, and CORS must allow the exact frontend origin.
-
-Logout clears the cookie with the same cookie options used by login/signup.
-
-## Cloudinary Image Uploads
-
-Profile images and message images are sent to the backend as image data URLs. The backend validates the image type and size before uploading to Cloudinary.
-
-Supported data URL image types:
-
-- PNG
-- JPG/JPEG
-- GIF
-- WebP
-
-Tune upload size with:
-
-```env
+# Upload limits
 MAX_IMAGE_UPLOAD_BYTES=5242880
 JSON_BODY_LIMIT=10mb
 ```
 
-## Resend Welcome Email
+**Key variable notes:**
 
-On successful signup, the backend sends a welcome email through Resend. Email delivery is non-blocking: if Resend fails, signup still succeeds and the error is logged.
+| Variable | Description |
+|---|---|
+| `MONGODB_URI` | Local MongoDB or MongoDB Atlas connection string |
+| `JWT_SECRET` | Long random string — never commit the real value |
+| `CLIENT_URL` | Frontend origin allowed by CORS. Comma-separate multiple URLs |
+| `COOKIE_SECURE` | `false` for HTTP locally; `true` for HTTPS production |
+| `COOKIE_SAME_SITE` | `lax` for same-domain; `none` for cross-domain frontend/backend |
+| `TRUST_PROXY` | Set to `1` on hosted platforms (Render, Railway, etc.) |
+| `SERVE_FRONTEND` | `true` only when `frontend/dist` is present in the backend service |
+| `ARCJET_MODE` | `DRY_RUN` to observe, `LIVE` to enforce |
 
-For production, verify your sender/domain in Resend and set:
+### Frontend — `frontend/.env`
 
 ```env
-RESEND_API_KEY=
-EMAIL_FROM=
-EMAIL_FROM_NAME=
+# Only needed for split frontend/backend deployments
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_BACKEND_URL=http://localhost:5000
 ```
 
-## Arcjet Protection
+For same-domain production (Express serving the SPA), both variables can be omitted.
 
-Arcjet middleware protects auth and message routes. Without `ARCJET_KEY`, the middleware safely no-ops.
+---
 
-Recommended rollout:
+## 📡 API Reference
+
+### Auth — `/api/auth`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/signup` | — | Register a new user |
+| `POST` | `/login` | — | Authenticate and set cookie |
+| `POST` | `/logout` | — | Clear auth cookie |
+| `GET` | `/profile` | ✅ | Get current user profile |
+| `PUT` | `/update-profile` | ✅ | Upload new profile picture |
+
+### Messages — `/api/messages`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `POST` | `/send/:id` | ✅ | Send a message to user `:id` |
+| `GET` | `/chats` | ✅ | Get chat partners with latest messages |
+| `GET` | `/contacts` | ✅ | Get all users (for starting new chats) |
+| `GET` | `/:id` | ✅ | Get full message history with user `:id` |
+
+### Health
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Returns `200 OK` — use for deployment health checks |
+
+---
+
+## 🌐 Deployment
+
+### Option A — Split (Vercel + Render) ← *Live demo uses this*
+
+This is the recommended approach for a portfolio deployment. The React frontend lives on Vercel; the Express API runs on Render with WebSocket support.
+
+**Render backend:**
+
+| Setting | Value |
+|---|---|
+| Root Directory | `backend` |
+| Build Command | `npm install` |
+| Start Command | `npm start` |
+| WebSocket support | Required — enable in Render settings |
+
+Backend environment variables on Render:
 
 ```env
+NODE_ENV=production
+PORT=10000
+TRUST_PROXY=1
+SERVE_FRONTEND=false
+CLIENT_URL=https://your-frontend.vercel.app
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=none
+# ... plus MongoDB, JWT, Cloudinary, Resend, Arcjet
+```
+
+**Vercel frontend:**
+
+```env
+VITE_API_BASE_URL=https://your-backend.onrender.com/api
+VITE_BACKEND_URL=https://your-backend.onrender.com
+```
+
+`vercel.json` in `frontend/` already includes the SPA rewrite rule — no extra config needed.
+
+> **Cross-domain cookie note:** Both frontend and backend must be on HTTPS. Axios and Socket.IO must send credentials. `COOKIE_SAME_SITE=none` is required for cross-domain cookies.
+
+---
+
+### Option B — Single Full-Stack Service (Render / Railway / Fly.io)
+
+Express serves both the API and the compiled React SPA from the same process and domain.
+
+**Build command:**
+```bash
+npm run build
+```
+
+**Start command:**
+```bash
+npm start
+```
+
+Backend environment variables:
+
+```env
+NODE_ENV=production
+PORT=<platform-assigned>
+TRUST_PROXY=1
+SERVE_FRONTEND=true
+CLIENT_URL=https://your-app.example.com
+COOKIE_SECURE=true
+COOKIE_SAME_SITE=lax
+```
+
+Leave `VITE_API_BASE_URL` and `VITE_BACKEND_URL` empty — the frontend defaults to relative paths.
+
+---
+
+## 🔒 Auth & Cookie Reference
+
+| Environment | `COOKIE_SECURE` | `COOKIE_SAME_SITE` | `CLIENT_URL` |
+|---|---|---|---|
+| Local dev | `false` | `lax` | `http://localhost:5173` |
+| Same-domain production | `true` | `lax` | `https://your-app.com` |
+| Cross-domain production | `true` | `none` | `https://your-frontend.vercel.app` |
+
+Logout clears the `token` cookie using the same options as login, so the browser removes it correctly.
+
+---
+
+## 🛡 Arcjet Security
+
+Arcjet protects all `/api/auth/*` and `/api/messages/*` routes with:
+
+- **Shield** — blocks common attack patterns
+- **Bot detection** — denies spoofed bots; allows search engine crawlers
+- **Sliding window rate limit** — 100 requests per 60 seconds per client
+
+Without `ARCJET_KEY`, the middleware no-ops safely — useful for local dev without an account. Arcjet errors also fail open so a provider outage never takes your API offline.
+
+```env
+# Start in dry-run to observe decisions without blocking
 ARCJET_MODE=DRY_RUN
-```
 
-Use dry run first to observe behavior, then switch to:
-
-```env
+# Switch to live once you've reviewed the Arcjet dashboard
 ARCJET_MODE=LIVE
 ```
 
-Arcjet errors fail open so a provider/runtime issue does not take the app offline.
+---
 
-## Verification Commands
-
-Backend syntax/lint check:
+## 🔧 Useful Commands
 
 ```bash
-npm run lint --prefix backend
+# Install all dependencies
+npm install --prefix backend && npm install --prefix frontend
+
+# Development
+npm run dev --prefix backend        # Start backend with nodemon
+npm run dev --prefix frontend       # Start frontend with Vite HMR
+
+# Lint
+npm run lint --prefix backend       # Syntax check (backend)
+npm run lint --prefix frontend      # ESLint (frontend)
+
+# Production build
+npm run build --prefix frontend     # Build frontend to frontend/dist
+npm run build                       # Install deps + build frontend (root)
+npm start                           # Start production backend
+
+# Health check
+curl http://localhost:5000/api/health
 ```
 
-Frontend lint:
+---
 
-```bash
-npm run lint --prefix frontend
-```
+## 🐛 Troubleshooting
 
-Frontend production build:
+**Cookie not set after login**
+- Confirm `COOKIE_SECURE=false` for local HTTP (`true` requires HTTPS)
+- For cross-domain deployments, set `COOKIE_SAME_SITE=none` and ensure both sides are on HTTPS
+- Check that Axios is configured with `withCredentials: true`
 
-```bash
-npm run build --prefix frontend
-```
+**CORS error**
+- `CLIENT_URL` must be the exact frontend origin (e.g. `https://your-app.vercel.app`) — no trailing slash
+- For multiple origins, use comma-separated values: `CLIENT_URL=https://a.com,https://b.com`
 
-Root production build:
+**Socket.IO won't connect**
+- `VITE_BACKEND_URL` must point to the backend origin
+- Confirm the hosting platform supports WebSockets
+- The JWT cookie must be set before the socket connection is attempted
 
-```bash
-npm run build
-```
+**Images fail to upload**
+- Verify all three Cloudinary env vars are set
+- Supported types: PNG, JPG/JPEG, GIF, WebP
+- Increase `JSON_BODY_LIMIT` if large base64 payloads are rejected (default `10mb`)
 
-Health check after starting backend:
+**Welcome email not delivered**
+- Verify `RESEND_API_KEY` and that `EMAIL_FROM` uses a verified sender domain in Resend
+- Signup still succeeds if email delivery fails — check backend logs for warnings
 
-```text
-GET http://localhost:5000/api/health
-```
+**Arcjet blocking unexpectedly**
+- Set `ARCJET_MODE=DRY_RUN` to log decisions without blocking traffic
+- Ensure `TRUST_PROXY` is correct for your host (usually `1` on Render, Railway, etc.)
 
-Manual browser verification:
+---
 
-- Sign up or log in.
-- Open Contacts.
-- Select another user.
-- Send a first message.
-- Confirm the chat appears in Chats.
-- Confirm real-time receive works in another browser or incognito window.
-- Refresh and confirm auth, chats, and messages reload.
+## 🚧 Known Limitations & Roadmap
 
-## Production Build
+**Current limitations:**
+- No unread message counts or read receipts
+- No typing indicators
+- No message editing or deletion
+- Frontend bundle has a large chunk warning (not yet code-split)
 
-Build the frontend:
+**Planned improvements:**
+- [ ] Message pagination for long conversations
+- [ ] Typing indicators
+- [ ] Read receipts
+- [ ] Code-split frontend bundle
+- [ ] CI pipeline (lint, build, audit)
 
-```bash
-npm run build --prefix frontend
-```
+---
 
-The backend runs in API-only mode by default, even when `NODE_ENV=production`.
+## 📝 License
 
-To serve the frontend from the backend in a single-service deployment, build the frontend and set:
-
-```env
-NODE_ENV=production
-SERVE_FRONTEND=true
-```
-
-If `SERVE_FRONTEND=true` but `frontend/dist/index.html` is missing, the backend logs a warning and stays in API-only mode instead of throwing an `ENOENT` error.
-
-Root build installs backend/frontend dependencies and builds the frontend:
-
-```bash
-npm run build
-```
-
-Start production backend:
-
-```bash
-npm start
-```
-
-## Deployment Guide
-
-### Option A: Single Full-Stack Service
-
-Good for Render, Railway, Fly.io, or similar platforms that can run a Node server and support WebSockets.
-
-Build command:
-
-```bash
-npm run build
-```
-
-Start command:
-
-```bash
-npm start
-```
-
-Important env:
-
-```env
-NODE_ENV=production
-PORT=<provided-by-platform>
-TRUST_PROXY=1
-CLIENT_URL=https://your-app.example.com
-SERVE_FRONTEND=true
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=lax
-VITE_API_BASE_URL=
-VITE_BACKEND_URL=
-```
-
-In this setup, Express serves the frontend and API from the same domain.
-
-### Option B: Vercel Frontend and Separate Backend
-
-Use this when the React frontend is deployed separately from the Express backend, such as Vercel frontend plus Render backend.
-
-Render backend service example:
-
-- Root Directory: `backend`
-- Build Command: `npm install`
-- Start Command: `npm start`
-- WebSocket support: required
-
-Backend env:
-
-```env
-NODE_ENV=production
-TRUST_PROXY=1
-CLIENT_URL=https://your-frontend.vercel.app
-SERVE_FRONTEND=false
-COOKIE_SECURE=true
-COOKIE_SAME_SITE=none
-```
-
-Frontend env:
-
-```env
-VITE_API_BASE_URL=https://your-backend.example.com/api
-VITE_BACKEND_URL=https://your-backend.example.com
-```
-
-Requirements:
-
-- Backend must use HTTPS.
-- Backend CORS must allow the exact frontend URL.
-- Backend should keep `SERVE_FRONTEND=false` because `frontend/dist` is not present in a backend-only service.
-- Frontend requests must include credentials.
-- Backend host must support WebSockets.
-- Cookies may be affected by browser third-party cookie restrictions if frontend/backend are on unrelated domains.
-
-### MongoDB Atlas
-
-- Create a production cluster.
-- Use a strong database password.
-- Restrict Network Access where practical.
-- Store `MONGODB_URI` as a platform secret.
-
-### Cloudinary
-
-- Use production Cloudinary credentials.
-- Keep API secret server-side only.
-- Confirm upload limits match your plan and app needs.
-
-### Resend
-
-- Verify a sender/domain.
-- Use the verified sender in `EMAIL_FROM`.
-- Keep the API key server-side only.
-
-### Arcjet
-
-- Start with `ARCJET_MODE=DRY_RUN`.
-- Review Arcjet decisions/logs.
-- Switch to `ARCJET_MODE=LIVE` after tuning.
-
-## Troubleshooting
-
-Cookie not set:
-
-- Confirm backend is HTTPS in production.
-- Confirm `COOKIE_SECURE=true` only on HTTPS.
-- For cross-domain deployment, use `COOKIE_SAME_SITE=none`.
-- Confirm frontend requests use credentials.
-
-CORS error:
-
-- Set `CLIENT_URL` to the exact frontend origin, including protocol.
-- Do not include a trailing path.
-- For multiple origins, use comma-separated values.
-
-Socket not connecting:
-
-- Confirm `VITE_BACKEND_URL` points to the backend origin.
-- Confirm backend supports WebSockets.
-- Confirm cookie auth works before socket connection.
-- Check that the backend allows the frontend origin.
-
-Images fail to upload:
-
-- Confirm Cloudinary env vars are set.
-- Confirm image type is PNG, JPG/JPEG, GIF, or WebP.
-- Increase `JSON_BODY_LIMIT` if large base64 payloads are blocked.
-
-Welcome email not sent:
-
-- Confirm Resend API key and verified sender.
-- Check backend logs.
-- Signup can still succeed if email delivery fails.
-
-Arcjet blocks or logs unexpected decisions:
-
-- Use `ARCJET_MODE=DRY_RUN` while tuning.
-- Confirm `TRUST_PROXY` is set correctly on the host.
-- Check Arcjet dashboard/logs.
-
-## Known Remaining Limitations
-
-- No unread counts or read receipts yet.
-- No typing indicators.
-- No message deletion or editing.
-- Frontend bundle currently has a large chunk warning.
-- Browser-level deployment verification should be done after choosing a hosting platform.
-
-## Future Improvements
-
-- Add message pagination for long conversations.
-- Add typing indicators and read receipts.
-- Add upload progress for images.
-- Split frontend chunks to reduce bundle size.
-- Add CI for lint, build, and audit checks.
+[ISC](LICENSE) · Built by [ShihamAhamed](https://github.com/ShihamAhamed)
